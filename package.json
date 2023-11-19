@@ -1,0 +1,14 @@
+{
+    "name": "block-inheritance-templating",
+    "version": "1.0.0",
+    "description": "test block inheritance templating",
+    "main": "index.mjs",
+    "scripts": {
+        "test": "ava"
+    },
+    "author": "Thomas Koudela",
+    "license": "MIT",
+    "devDependencies": {
+        "ava": "^4.3.3"
+    }
+}
