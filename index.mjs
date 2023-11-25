@@ -226,7 +226,7 @@ async function render(template, variables, lang, fnc={}, entrypoint='main') {
 
         [blockFnc, currentTemplate] = getBlockTemplate(blockName, startingTemplate)
 
-        if (isNull(blockFnc)) return '';
+        if (!isFnc(blockFnc)) throw Error(`block '${ blockName }' is not a function`);
 
         const varFnc = getVariablesFnc(dictionary, blockName, lang, local, fnc, startingTemplate, currentTemplate)
 
