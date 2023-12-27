@@ -217,69 +217,73 @@ async function render(template, variables, lang, fnc={}, entrypoint='main') {
      * @return {Promise<string>}
      */
     const renderBlock = async (blockName, startingTemplate, local) => {
-        blockCount += 1
-        if (blockCount > maxBlockCount) throw Error('block count exceeds limit of '+maxBlockCount)
-
-        let blockFnc, currentTemplate, rendered
-
-        if (isNull(startingTemplate)) return '';
-
-        [blockFnc, currentTemplate] = getBlockTemplate(blockName, startingTemplate)
-
-        if (!isFnc(blockFnc)) throw Error(`block '${ blockName }' is not a function`);
-
-        const varFnc = getVariablesFnc(dictionary, blockName, lang, local, fnc, startingTemplate, currentTemplate)
-
-        const args = [lang, blockName, currentTemplate, varFnc, local, fnc]
-
-        /**
-         * Renders the parent of the current block.
-         *
-         * @return {Promise<string>}
-         */
-        local.parent = async () => {
-            return await renderBlock(blockName, currentTemplate.parent, local)
-        }
-
-        local.lang = lang
-
-        /**
-         * Tries to fetch a translation for `item` in the current template
-         * context. Returns the first result from `fnc.trans` and
-         * `template.trans` that is not `null`.
-         *
-         * @param {string} item
-         * @param {string|null} category
-         *
-         * @return {string}
-         */
-        local.trans = async (item, category=null) => {
-            return await conditionalFncCall('trans', [item, category, ...args], fnc, startingTemplate, item)
-        }
-
         try {
-            await conditionalFncCall('preCall', args, fnc, startingTemplate)
-
-            rendered = await conditionalFncCall('getCache', args, fnc, startingTemplate)
-
-            if (isNull(rendered)) {
-                await conditionalFncCall('preRender', args, fnc, startingTemplate)
-
-                rendered = await blockFnc(varFnc, local, fnc)
-
-                if (typeof rendered !== 'string') error('block `'+blockName+'` has to return a string')
-
-                await conditionalFncCall('postRender', args, fnc, startingTemplate);
-
-                await conditionalFncCall('setCache', [rendered, ...args], fnc, startingTemplate)
+            blockCount += 1
+            if (blockCount > maxBlockCount) error('block count exceeds limit of '+maxBlockCount)
+    
+            let blockFnc, currentTemplate, rendered
+    
+            if (isNull(startingTemplate)) return '';
+    
+            [blockFnc, currentTemplate] = getBlockTemplate(blockName, startingTemplate)
+    
+            if (!isFnc(blockFnc)) error(`block '${ blockName }' is not a function`);
+    
+            const varFnc = getVariablesFnc(dictionary, blockName, lang, local, fnc, startingTemplate, currentTemplate)
+    
+            const args = [lang, blockName, currentTemplate, varFnc, local, fnc]
+    
+            /**
+             * Renders the parent of the current block.
+             *
+             * @return {Promise<string>}
+             */
+            local.parent = async () => {
+                return await renderBlock(blockName, currentTemplate.parent, local)
             }
-
-            await conditionalFncCall('postCall', args, fnc, startingTemplate)
-        } catch (e) {
-            rendered = '' + await conditionalFncCall('onError', [e, ...args], fnc, startingTemplate, rethrow)
+    
+            local.lang = lang
+    
+            /**
+             * Tries to fetch a translation for `item` in the current template
+             * context. Returns the first result from `fnc.trans` and
+             * `template.trans` that is not `null`.
+             *
+             * @param {string} item
+             * @param {string|null} category
+             *
+             * @return {string}
+             */
+            local.trans = async (item, category=null) => {
+                return await conditionalFncCall('trans', [item, category, ...args], fnc, startingTemplate, item)
+            }
+    
+            try {
+                await conditionalFncCall('preCall', args, fnc, startingTemplate)
+    
+                rendered = await conditionalFncCall('getCache', args, fnc, startingTemplate)
+    
+                if (isNull(rendered)) {
+                    await conditionalFncCall('preRender', args, fnc, startingTemplate)
+    
+                    rendered = await blockFnc(varFnc, local, fnc)
+    
+                    if (typeof rendered !== 'string') error(`block '${blockName}' has to return a string`)
+    
+                    await conditionalFncCall('postRender', args, fnc, startingTemplate);
+    
+                    await conditionalFncCall('setCache', [rendered, ...args], fnc, startingTemplate)
+                }
+    
+                await conditionalFncCall('postCall', args, fnc, startingTemplate)
+            } catch (e) {
+                rendered = '' + await conditionalFncCall('onError', [e, ...args], fnc, startingTemplate, rethrow)
+            }
+    
+            return rendered    
+        } catch(e) {
+            error(`${blockName} has thrown: ${ e.message }`) 
         }
-
-        return rendered
     }
 
     return renderBlock(entrypoint, origin, getLocalObj(null))
