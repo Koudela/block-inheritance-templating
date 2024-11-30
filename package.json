@@ -1,13 +1,27 @@
 {
     "name": "block-inheritance-templating",
     "version": "1.0.0",
-    "description": "test block inheritance templating",
+    "description": "block inheritance templating",
     "main": "index.mjs",
     "scripts": {
         "test": "ava"
     },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/koudela/block-inheritance-templating.git"
+    },
+    "keywords": [
+        "block",
+        "inheritance",
+        "template",
+        "engine"
+    ],
     "author": "Thomas Koudela",
     "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/koudela/block-inheritance-templating/issues"
+    },
+    "homepage": "https://github.com/koudela/block-inheritance-templating#readme",
     "devDependencies": {
         "ava": "^4.3.3"
     }
