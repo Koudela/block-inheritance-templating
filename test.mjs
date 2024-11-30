@@ -4,7 +4,7 @@
  *
  * @package block-inheritance-templating
  * @link https://github.com/Koudela/block-inheritance-templating/
- * @copyright Copyright (c) 2022 Thomas Koudela
+ * @copyright Copyright (c) 2022-2025 Thomas Koudela
  * @license http://opensource.org/licenses/MIT MIT License
  */
 
@@ -322,7 +322,7 @@ test('special function onError()', async t => {
         await render(template, {}, 'en')
         t.fail()
     } catch (e) {
-        t.is('Ups', e.message)
+        t.is('main has thrown: Ups', e.message)
     }
     const result = await render(template, {}, 'en', { onError: (e) => e.message + '!' })
     t.is(result, 'Ups!')
@@ -330,7 +330,7 @@ test('special function onError()', async t => {
         await render(template, {}, 'en', { onError: (e) => { throw new Error(e.message + '?') }})
         t.fail()
     } catch (e) {
-        t.is('Ups?', e.message)
+        t.is('main has thrown: Ups?', e.message)
     }
 })
 
