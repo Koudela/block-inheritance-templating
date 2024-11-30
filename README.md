@@ -122,6 +122,8 @@ The `local` argument holds some special functionality:
 - local.index
 - local.vars(name)
 - local.trans(item, category=null)
+- local.block(blockName, localVars)
+- local.iterate(bockName, data, separator='')
 ```
 
 `local.parent()` looks for the same block in the templates inheritance chain and
@@ -156,6 +158,13 @@ function `trans()`.
 ```js
 const translatedString = local.trans('hello', 'snippet.words')
 ```
+
+`local.block` is the same as `fnc.block` without access to the global scope. If
+the local vars are omitted the current scope is used. Template vars remain 
+always accessible as fallback.
+
+`local.iterate` is the same as `fnc.interate` without access to the global scope.
+Template vars remain always accessible as fallback.
 
 ## special functions
 

@@ -4,13 +4,13 @@
  *
  * @package block-inheritance-templating
  * @link https://github.com/Koudela/block-inheritance-templating/
- * @copyright Copyright (c) 2022 Thomas Koudela
+ * @copyright Copyright (c) 2022-2025 Thomas Koudela
  * @license http://opensource.org/licenses/MIT MIT License
  */
 
 export { render }
 
-const maxBlockCount = 100000
+const maxBlockCount = 1000
 
 function isNull(item) {
     return item === null || typeof item === 'undefined'
@@ -184,11 +184,12 @@ async function render(template, variables, lang, fnc={}, entrypoint='main') {
      *
      * @param {string} blockName
      * @param {function|Object|null} localVariables a function returning variable values for passed variable names or a dictionary
+     * @param {boolean} useDictionary
      *
      * @return {Promise<string>}
      */
-    fnc.block = async (blockName, localVariables) => {
-        return await renderBlock(blockName, origin, getLocalObj(localVariables))
+    const block = async (blockName, localVariables, useDictionary=true) => {
+        return await renderBlock(blockName, origin, localVariables, useDictionary)
     }
 
     /**
@@ -198,11 +199,22 @@ async function render(template, variables, lang, fnc={}, entrypoint='main') {
      * @param {string} blockName
      * @param {array} data
      * @param {string} separator
+     * @param {boolean} useDictionary
      *
      * @return {Promise<string>}
      */
-    fnc.iterate = async (blockName, data, separator='') =>
-        (await Promise.all(data.map(async (localVars, index) => await renderBlock(blockName, origin, getLocalObj(localVars, index))))).join(separator)
+    const iterate = async (blockName, data, separator='', useDictionary=true) =>
+        (await Promise.all(data.map(async (localVars, index) => await renderBlock(blockName, origin, getLocalObj(localVars, index), useDictionary)))).join(separator)
+
+    /**
+     * Same as block() with initialized local object and global variable scope always.
+     */
+    fnc.block = (blockName, localVariables) => block(blockName, getLocalObj(localVariables))
+
+    /**
+     * Same as iterate() with global variable scope always.
+     */
+    fnc.iterate = (blockName, data, separator='') => iterate(blockName, data, separator, true)
 
     fnc.render = (tpl, variables = dictionary, lng = lang, fnc={}, entrypoint='main') =>
         render(tpl, variables, lng, {...fnc}, entrypoint)
@@ -213,10 +225,12 @@ async function render(template, variables, lang, fnc={}, entrypoint='main') {
      * @param {string} blockName
      * @param {Object|null} startingTemplate
      * @param {Object} local
+     * @param {boolean} useDictionary
      *
      * @return {Promise<string>}
      */
-    const renderBlock = async (blockName, startingTemplate, local) => {
+    const renderBlock = async (blockName, startingTemplate, local, useDictionary=true) => {
+
         try {
             blockCount += 1
             if (blockCount > maxBlockCount) error('block count exceeds limit of '+maxBlockCount)
@@ -229,7 +243,7 @@ async function render(template, variables, lang, fnc={}, entrypoint='main') {
     
             if (!isFnc(blockFnc)) error(`block '${ blockName }' is not a function`);
     
-            const varFnc = getVariablesFnc(dictionary, blockName, lang, local, fnc, startingTemplate, currentTemplate)
+            const varFnc = getVariablesFnc(useDictionary ? dictionary : ()=>null, blockName, lang, local, fnc, startingTemplate, currentTemplate)
     
             const args = [lang, blockName, currentTemplate, varFnc, local, fnc]
     
@@ -241,7 +255,17 @@ async function render(template, variables, lang, fnc={}, entrypoint='main') {
             local.parent = async () => {
                 return await renderBlock(blockName, currentTemplate.parent, local)
             }
-    
+
+            /**
+             * Same as block(), with the initialized passed variable scope only. If omitted the last scope is used.
+             */
+            local.block = async (blockName, localVariables) => block(blockName, localVariables ? getLocalObj(localVariables) : local, false)
+
+            /**
+             * Same as iterate() with passed variable scope only.
+             */
+            local.iterate = async (blockName, data, separator='') => iterate(blockName, data, separator, false)
+
             local.lang = lang
     
             /**
@@ -282,9 +306,10 @@ async function render(template, variables, lang, fnc={}, entrypoint='main') {
     
             return rendered    
         } catch(e) {
-            error(`${blockName} has thrown: ${ e.message }`) 
+            e.message = (`${blockName} has thrown: ${ e.message }`)
+            rethrow(e)
         }
     }
 
-    return renderBlock(entrypoint, origin, getLocalObj(null))
+    return renderBlock(entrypoint, origin, getLocalObj(dictionary), false)
 }

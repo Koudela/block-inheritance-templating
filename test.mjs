@@ -40,7 +40,9 @@ test('vars() passed as object', async t => {
         block: {
             main: async (vars, local, fnc) => await printVars(vars, local)
                 +await fnc.block('vars', { block:'block' })
+                +await local.block('vars', { block:'block' })
                 +await fnc.iterate('vars', [{ iterate:'i1' },{ iterate:'i2' }])
+                +await local.iterate('vars', [{ iterate:'i1' },{ iterate:'i2' }])
                 +await fnc.render(varsObjectTemplate, { fncRender:'fncRender' }, 'en', {}, 'vars')
                 +await local.parent(),
             vars: printVars
@@ -52,12 +54,15 @@ test('vars() passed as object', async t => {
     }
     const result = await render(varsObjectTemplate, { render: 'render' }, 'en')
     t.is(
-        'render|___|template|parent#'
-        +'render|block__|template|parent#'
-        +'render|_i1_|template|parent#'
-        +'render|_i2_|template|parent#'
-        +'null|__fncRender|template|parent#'
-        +'render|___|null|parent#',
+        'render|___|template|parent#'         // print vars
+        +'render|block__|template|parent#'    // fnc.block
+        +'null|block__|template|parent#'      // local.block
+        +'render|_i1_|template|parent#'       // fnc.iterate 1
+        +'render|_i2_|template|parent#'       // fnc.iterate 2
+        +'null|_i1_|template|parent#'         // local.iterate 1
+        +'null|_i2_|template|parent#'         // local.iterate 2
+        +'null|__fncRender|template|parent#'  // fnc.render
+        +'render|___|null|parent#',           // local.parent
         result
     )
 })
@@ -78,7 +83,9 @@ test('vars() passed as function', async t => {
         block: {
             main: async (vars, local, fnc) => await printVars(vars, local)
                 +await fnc.block('vars', getVarsFnc('block'))
+                +await local.block('vars', getVarsFnc('block'))
                 +await fnc.iterate('vars', [getVarsFnc('iterate', 'i1'), getVarsFnc('iterate', 'i2')])
+                +await local.iterate('vars', [getVarsFnc('iterate', 'i1'), getVarsFnc('iterate', 'i2')])
                 +await fnc.render(varsFunctionTemplate, getVarsFnc('fncRender'), 'en', {}, 'vars')
                 +await local.parent(),
             vars: printVars
@@ -87,12 +94,15 @@ test('vars() passed as function', async t => {
     }
     const result = await render(varsFunctionTemplate, getVarsFnc('render'), 'en')
     t.is(
-        'render|___|template|parent#'
-        +'render|block__|template|parent#'
-        +'render|_i1_|template|parent#'
-        +'render|_i2_|template|parent#'
-        +'null|__fncRender|template|parent#'
-        +'render|___|null|parent#',
+        'render|___|template|parent#'         // print vars
+        +'render|block__|template|parent#'    // fnc.block
+        +'null|block__|template|parent#'      // local.block
+        +'render|_i1_|template|parent#'       // fnc.iterate 1
+        +'render|_i2_|template|parent#'       // fnc.iterate 2
+        +'null|_i1_|template|parent#'         // local.iterate 1
+        +'null|_i2_|template|parent#'         // local.iterate 2
+        +'null|__fncRender|template|parent#'  // fnc.render
+        +'render|___|null|parent#',           // local.parent
         result
     )
 })
@@ -114,7 +124,9 @@ const getVarsInheritanceChainTemplate = (printVars) => {
         block: {
             main: async (vars, local, fnc) => await printVars(vars, local)
                 + await fnc.block('vars', {block: 'block'})
+                + await local.block('vars', {block: 'block'})
                 + await fnc.iterate('vars', [{iterate: 'i1'}, {iterate: 'i2'}])
+                + await local.iterate('vars', [{iterate: 'i1'}, {iterate: 'i2'}])
                 + await fnc.render(varsInheritanceChainTemplate, {fncRender: 'fncRender'}, 'en', {}, 'vars')
                 + await local.parent(),
             vars: printVars
@@ -139,12 +151,15 @@ test('vars() inheritance chain', async t => {
         fncRender:'_',
     }, 'en')
     t.is(
-        'render|___|template|parent#'
-        +'render|block__|template|parent#'
-        +'render|_i1_|template|parent#'
-        +'render|_i2_|template|parent#'
-        +'-|--fncRender|template|parent#'
-        +'render|___|x|parent#',
+        'render|___|template|parent#'       // print vars
+        +'render|block__|template|parent#'  // fnc.block
+        +'-|block--|template|parent#'       // local.block
+        +'render|_i1_|template|parent#'     // fnc.iterate 1
+        +'render|_i2_|template|parent#'     // fnc.iterate 2
+        +'-|-i1-|template|parent#'          // local.iterate 1
+        +'-|-i2-|template|parent#'          // local.iterate 2
+        +'-|--fncRender|template|parent#'   // fnc.render
+        +'render|___|x|parent#',            // local.parent
         result
     )
 })
@@ -184,6 +199,27 @@ test('fnc.block() inheritance chain', async t => {
     t.is(result, 'main|block|parentBlock|childBlock')
 })
 
+test('local.block() inheritance chain', async t => {
+    const template = {
+        parent: {
+            parent: null,
+            block: {
+                main: () => ``,
+                block: () => ``,
+                childBlock: () => ``,
+                parentBlock: async (vars, local, fnc) => `parentBlock|`+await local.block('childBlock'),
+            }
+        },
+        block: {
+            main: async (vars, local, fnc) => `main|`+await local.block('block'),
+            block: async (vars, local, fnc) => `block|`+await local.block('parentBlock'),
+            childBlock: () => `childBlock`,
+        },
+    }
+    const result = await render(template, {}, 'en')
+    t.is(result, 'main|block|parentBlock|childBlock')
+})
+
 test('fnc.iterate() inheritance chain', async t => {
     const template = {
         parent: {
@@ -198,6 +234,27 @@ test('fnc.iterate() inheritance chain', async t => {
         block: {
             main: async (vars, local, fnc) => `main|`+await fnc.iterate('block',[{}]),
             block: async (vars, local, fnc) => `block|`+await fnc.iterate('parentBlock',[{}]),
+            childBlock: () => `childBlock`,
+        },
+    }
+    const result = await render(template, {}, 'en')
+    t.is(result, 'main|block|parentBlock|childBlock')
+})
+
+test('local.iterate() inheritance chain', async t => {
+    const template = {
+        parent: {
+            parent: null,
+            block: {
+                main: () => ``,
+                block: () => ``,
+                childBlock: () => ``,
+                parentBlock: async (vars, local, fnc) => `parentBlock|`+await local.iterate('childBlock',[{}]),
+            }
+        },
+        block: {
+            main: async (vars, local, fnc) => `main|`+await local.iterate('block',[{}]),
+            block: async (vars, local, fnc) => `block|`+await local.iterate('parentBlock',[{}]),
             childBlock: () => `childBlock`,
         },
     }
@@ -278,12 +335,15 @@ test('local.vars()', async t => {
         fncRender:'_',
     }, 'en')
     t.is(
-        'null|nullnullnull|null|null#'
-        +'null|blocknullnull|null|null#'
-        +'null|nulli1null|null|null#'
-        +'null|nulli2null|null|null#'
-        +'null|nullnullnull|null|null#'
-        +'null|nullnullnull|null|null#',
+        'render|___|null|null#'               // print vars
+        +'null|blocknullnull|null|null#'      // fnc.block
+        +'null|blocknullnull|null|null#'      // local.block
+        +'null|nulli1null|null|null#'         // fnc.iterate 1
+        +'null|nulli2null|null|null#'         // fnc,iterate 2
+        +'null|nulli1null|null|null#'         // local.iterate 1
+        +'null|nulli2null|null|null#'         // local,iterate 2
+        +'null|nullnullfncRender|null|null#'  // fnc.render
+        +'render|___|null|null#',             // local.parent
         result
     )
 })
