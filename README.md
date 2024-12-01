@@ -21,6 +21,27 @@ block based template rendering engine
 * can be used with javascript template literals
 * allows a logic-less template style or full-fledged template scripting
 
+## install
+
+```bash
+npm install block-inheritance-templating
+```
+
+## hello world
+
+```js
+(async () => {
+    const { render } = await import('block-inheritance-templating')
+
+    render({
+        parent: null,
+        block: {
+            main: () => "hello world"
+        }
+    }).then(content => console.log(content))
+})()
+```
+
 ## the ***template***
 
 Every object that has a `parent` and a `block` property is a template. 
@@ -212,13 +233,13 @@ be called with or without a cache hit.
 ## how to ***render*** a template
 
 ```js
-const render = require('./block-inheritance-templating').render
+const { render } = await import('block-inheritance-templating')
 ```
 
 or 
 
 ```js
-import { render } from './block-inheritance-templating/index.mjs'
+import { render } from 'block-inheritance-templating'
 ```
 
 then 
@@ -236,10 +257,13 @@ const output = await render(template, vars, lang, fnc, entrypoint)
 ## Basic Example
 
 ```js
-const render = require('./block-inheritance-templating').render
+const { render } = await import('block-inheritance-templating')
 
 const parentTemplate = {
     parent: null,
+    vars: {
+        content: '<p>some content</p>',
+    },
     block: {
         main: async (vars, local, fnc) => {
             return `<!doctype html>

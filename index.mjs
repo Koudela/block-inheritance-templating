@@ -173,7 +173,7 @@ async function conditionalFncCall(name, args, object, template, preset = null) {
  *
  * @return {Promise<string>} The rendered main block of the `template`.
  */
-async function render(template, variables, lang, fnc={}, entrypoint='main') {
+async function render(template, variables=null, lang='', fnc={}, entrypoint='main') {
     const dictionary = getDictionary(variables)
     const origin = template
     let blockCount = 0
